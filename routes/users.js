@@ -2,6 +2,14 @@ const express = require("express");
 const router = express.Router();
 const bcrypt = require("bcryptjs");
 const User = require("./../models/User");
+const passport = require("passport");
+const {ensureAuthenticated} = require('../config/auth');
+
+router.get('/dashboard', ensureAuthenticated, (req, res) => {
+  res.render("dashboard", {
+    name: 'Name'
+  });
+});
 
 router.get("/login", (req, res) => {
   res.render("login");
@@ -19,9 +27,9 @@ router.post("/register", (req, res) => {
     password
   });
 
-  bcrypt.genSalt(10, (err, salt) =>
-    bcrypt.hash(newUser.password, salt, (err, hash) => {
-      if (err) throw err;
+
+  bcrypt.hash(newUser.password, 10)
+    .then(hash => {
       newUser.password = hash;
       newUser
         .save()
@@ -30,7 +38,17 @@ router.post("/register", (req, res) => {
         })
         .catch(err => console.log(err));
     })
-  );
+    .catch(err => console.log(err));
+});
+
+router.post('/login',
+  passport.authenticate('local', { successRedirect: '/users/dashboard',
+                                                 failureRedirect: '/users/login'})
+);
+
+router.get('/logout', function(req, res){
+  req.logout();
+  res.redirect('/users/login');
 });
 
 module.exports = router;
